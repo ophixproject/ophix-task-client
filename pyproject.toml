@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ophix-task-client"
+version = "2026.05.07.01"
+description = "Task Scheduling Tier 1 client for Ophix Project Servers"
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+authors = [
+    { name = "Ophix Project" }
+]
+dependencies = [
+    "requests>=2.32.5",
+    "python-dotenv>=1.2.1",
+    "distro>=1.9.0",
+    "venv-cmds>=2026.05.01.01",
+]
+
+[project.scripts]
+task-client = "task_client.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
