@@ -25,6 +25,7 @@ from task_client.core import (
     TASKSERVER_CA_CERT,
     _resolve_server_config,
     build_client_headers,
+    create_task,
     get_client_version,
     get_tasks,
     in_venv,
@@ -229,6 +230,32 @@ def cmd_info(args):
     print("  {}: {}".format(TASKSERVER_CA_CERT, values.get(TASKSERVER_CA_CERT, "(not set)")))
 
 
+def cmd_create_task(args):
+    try:
+        result = create_task(
+            schedule=args.schedule,
+            name=args.name,
+            command=args.command,
+            description=args.description or "",
+            interval=args.interval or "",
+            run_at=args.run_at,
+            stdout_handling=args.stdout_handling,
+            stderr_handling=args.stderr_handling,
+            log_file=args.log_file or "",
+        )
+        status = result.get("status")
+        task_id = result.get("id")
+        if status == "created":
+            print("Created task #{}: {}".format(task_id, args.name))
+        elif status == "skipped":
+            print("Skipped (command already exists as task #{}): {}".format(task_id, args.command[:80]))
+        else:
+            print("Unexpected response: {}".format(result))
+    except Exception as e:
+        print("Failed to create task: {}".format(e))
+        sys.exit(1)
+
+
 def cmd_report(args):
     server_url, api_token, ca_cert, _ = _resolve_server_config(
         exit_on_error=True,
@@ -379,6 +406,26 @@ def build_parser():
     # doctor
     sub.add_parser("doctor", help="Check configuration and server connectivity.")
 
+    # create-task
+    p = sub.add_parser("create-task", help="Create a task on the server.")
+    p.add_argument("--schedule", required=True, help="Schedule name to add the task to")
+    p.add_argument("--name", required=True, help="Task name")
+    p.add_argument("--command", required=True, help="Command to execute")
+    p.add_argument("--description", default="", help="Optional description (written as a comment in the crontab)")
+    p.add_argument("--interval", default="", help="Cron expression for recurring tasks (e.g. '0 2 * * *')")
+    p.add_argument("--run-at", dest="run_at", default=None, help="ISO datetime for one-off tasks")
+    p.add_argument(
+        "--stdout-handling", dest="stdout_handling", default="inherit",
+        choices=["inherit", "report", "null", "file"],
+        help="Where to send stdout (default: inherit)",
+    )
+    p.add_argument(
+        "--stderr-handling", dest="stderr_handling", default="inherit",
+        choices=["inherit", "report", "null", "merge", "file"],
+        help="Where to send stderr (default: inherit)",
+    )
+    p.add_argument("--log-file", dest="log_file", default="", help="Log file path (used with --stdout-handling=file or --stderr-handling=file)")
+
     # report
     p = sub.add_parser("report", help="Read stdin and post execution output to the server.")
     p.add_argument("task_id", type=int, help="Task ID to report output for")
@@ -395,6 +442,7 @@ COMMANDS = {
     "rotate-token": cmd_rotate_token,
     "info": cmd_info,
     "doctor": cmd_doctor,
+    "create-task": cmd_create_task,
     "report": cmd_report,
 }
 
