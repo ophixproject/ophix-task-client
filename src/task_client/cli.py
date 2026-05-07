@@ -229,6 +229,94 @@ def cmd_info(args):
     print("  {}: {}".format(TASKSERVER_CA_CERT, values.get(TASKSERVER_CA_CERT, "(not set)")))
 
 
+def cmd_doctor(args):
+    print("task-client doctor\n")
+
+    env_path_str = find_dotenv(filename=ENV_FILE_NAME, usecwd=True)
+    if env_path_str:
+        print("  ENV file: {}".format(env_path_str))
+    else:
+        print("  No ENV file found — expected {}".format(ENV_FILE_NAME))
+        return
+
+    try:
+        mode = Path(env_path_str).stat().st_mode & 0o777
+        if mode == 0o600:
+            print("  ENV permissions: OK (600)")
+        else:
+            print("  ENV permissions: {} (recommended: 600)".format(oct(mode)))
+    except Exception as e:
+        print("  ENV permissions: could not check ({})".format(e))
+
+    from dotenv import load_dotenv
+    load_dotenv(env_path_str)
+
+    server_url = os.getenv(TASKSERVER_URL)
+    api_token = os.getenv(TASKSERVER_API_TOKEN)
+    ca_cert = os.getenv(TASKSERVER_CA_CERT)
+
+    if server_url:
+        print("  {}: {}".format(TASKSERVER_URL, server_url))
+    else:
+        print("  {}: not set".format(TASKSERVER_URL))
+        return
+
+    if api_token and len(api_token) == 64:
+        print("  {}: present (64 chars)".format(TASKSERVER_API_TOKEN))
+    else:
+        print("  {}: missing or invalid".format(TASKSERVER_API_TOKEN))
+        return
+
+    if ca_cert:
+        if Path(ca_cert).exists():
+            print("  {}: {}".format(TASKSERVER_CA_CERT, ca_cert))
+        else:
+            print("  {}: set but file missing: {}".format(TASKSERVER_CA_CERT, ca_cert))
+            return
+    else:
+        print("  {}: not set (using system trust store)".format(TASKSERVER_CA_CERT))
+
+    print("  Version: {}".format(get_client_version()))
+    print("  Python:  {}".format(sys.version.split()[0]))
+
+    venv_path = in_venv()
+    if venv_path:
+        print("  Venv: {} ({})".format(venv_path.name, venv_path))
+    else:
+        print("  Venv: not detected")
+
+    print("\nChecking server connectivity...")
+
+    headers = build_client_headers(api_token=api_token)
+    url = "{}/api/client/self/".format(server_url.rstrip("/"))
+
+    try:
+        resp = requests.get(url, headers=headers, verify=ca_cert or True, timeout=5)
+        resp.raise_for_status()
+    except requests.exceptions.SSLError as e:
+        print("  TLS error: {}".format(e))
+        return
+    except requests.exceptions.ConnectionError as e:
+        print("  Cannot connect to server: {}".format(e))
+        return
+    except requests.HTTPError as e:
+        print("  Server returned error: {}".format(e.response.status_code))
+        try:
+            print("  {}".format(e.response.json()))
+        except Exception:
+            print("  {}".format(e.response.text))
+        return
+
+    data = resp.json()
+    print("  Authenticated successfully")
+    print("\nClient identity:")
+    print("  Name:                {}".format(data.get("name")))
+    print("  Deployment ref:      {}".format(data.get("deployment_ref")))
+    print("  Venv name:           {}".format(data.get("venv_name")))
+    print("  Last token rotation: {}".format(data.get("last_token_rotation")))
+    print("\nDoctor checks completed successfully")
+
+
 # ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
@@ -270,6 +358,9 @@ def build_parser():
     # info
     sub.add_parser("info", help="Show current configuration.")
 
+    # doctor
+    sub.add_parser("doctor", help="Check configuration and server connectivity.")
+
     return parser
 
 
@@ -281,6 +372,7 @@ COMMANDS = {
     "fetch": cmd_fetch,
     "rotate-token": cmd_rotate_token,
     "info": cmd_info,
+    "doctor": cmd_doctor,
 }
 
 

@@ -8,7 +8,7 @@ Handles authentication, registration, and task fetching. Exposes `get_tasks()` a
 
 ## Installation
 
-```
+```bash
 pip install ophix-task-client
 ```
 
@@ -18,7 +18,7 @@ Requires Python 3.7+.
 
 ## Quick start
 
-```
+```bash
 task-client quickstart https://tasks.internal myhost-tasks
 ```
 
@@ -31,7 +31,7 @@ This sets the server URL, downloads the CA certificate, and registers the client
 Configuration is stored in `.task.env` in the project root (or venv parent directory).
 
 | Variable | Description |
-|---|---|
+| --- | --- |
 | `TASKSERVER_URL` | Task server base URL (e.g. `https://tasks.internal`) |
 | `TASKSERVER_API_TOKEN` | 64-character hex token issued on registration |
 | `TASKSERVER_CA_CERT` | Path to the server's CA certificate PEM file |
@@ -44,7 +44,7 @@ Configuration is stored in `.task.env` in the project root (or venv parent direc
 
 Set server URL, download CA certificate, and register this client in one step.
 
-```
+```bash
 task-client quickstart https://tasks.internal myhost-tasks
 ```
 
@@ -52,7 +52,7 @@ task-client quickstart https://tasks.internal myhost-tasks
 
 Set the task server URL.
 
-```
+```bash
 task-client set server https://tasks.internal
 ```
 
@@ -60,7 +60,7 @@ task-client set server https://tasks.internal
 
 Download and save the server's CA certificate. Required for TLS verification.
 
-```
+```bash
 task-client download ca-cert
 ```
 
@@ -68,7 +68,7 @@ task-client download ca-cert
 
 Register this client with the task server. Generates a token and saves it to `.task.env`.
 
-```
+```bash
 task-client register myhost-tasks
 ```
 
@@ -76,7 +76,7 @@ task-client register myhost-tasks
 
 Fetch the active task list and print it as JSON. Useful for inspection and debugging.
 
-```
+```bash
 task-client fetch
 ```
 
@@ -84,7 +84,7 @@ task-client fetch
 
 Generate a new token, send it to the server, and update `.task.env`. Run regularly via a separate cron job to limit token exposure.
 
-```
+```bash
 task-client rotate-token
 ```
 
@@ -92,8 +92,16 @@ task-client rotate-token
 
 Show the current configuration (server URL, token prefix, CA cert path).
 
-```
+```bash
 task-client info
+```
+
+### `task-client doctor`
+
+Check local configuration and server connectivity. Reports on the ENV file, permissions, token validity, CA cert path, and makes a live authenticated request to confirm the server accepts the token.
+
+```bash
+task-client doctor
 ```
 
 ---
@@ -113,7 +121,7 @@ for task in tasks:
 `get_tasks()` reads `.task.env` automatically and returns the active task list as a list of dicts. Each dict contains:
 
 | Field | Type | Description |
-|---|---|---|
+| --- | --- | --- |
 | `id` | int | Task ID on the server |
 | `schedule` | str | Schedule name |
 | `name` | str | Task name |
