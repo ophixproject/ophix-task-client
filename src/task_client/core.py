@@ -129,6 +129,7 @@ def _resolve_server_config(
 
 
 def get_tasks(
+    schedule=None,    # type: Optional[str]
     server_url=None,  # type: Optional[str]
     api_token=None,   # type: Optional[str]
     ca_cert=None,     # type: Optional[str]
@@ -137,14 +138,18 @@ def get_tasks(
     """
     Fetch the task list from the task server.
 
-    Returns all tasks for the client's active schedule, including disabled
-    tasks (enabled=False) so Tier 2 clients can comment them out rather
-    than silently removing them. Time bounds are still enforced server-side.
+    If schedule is given, only tasks from that named schedule are returned.
+    Without it, tasks from all enabled schedules for the client are returned.
+
+    Includes disabled tasks (enabled=False) so Tier 2 clients can comment
+    them out rather than silently removing them. Time bounds are enforced
+    server-side.
     """
     server_url, api_token, ca_cert = _resolve_server_config(server_url, api_token, ca_cert)
     url = "{}/api/tasks/".format(server_url.rstrip("/"))
     headers = build_client_headers(api_token=api_token)
-    response = requests.get(url, headers=headers, verify=ca_cert or True)
+    params = {"schedule": schedule} if schedule else {}
+    response = requests.get(url, headers=headers, params=params, verify=ca_cert or True)
     response.raise_for_status()
     return response.json()
 
