@@ -88,6 +88,16 @@ Generate a new token, send it to the server, and update `.task.env`. Run regular
 task-client rotate-token
 ```
 
+### `task-client report <task_id>`
+
+Read stdin and post the content to the server as an execution log entry for the given task. Used as part of a cron pipe expression — not normally run directly.
+
+```bash
+task-client report 42
+```
+
+Fails silently — the task already ran; reporting is best-effort and should not cause the cron job to show a failure.
+
 ### `task-client info`
 
 Show the current configuration (server URL, token prefix, CA cert path).
@@ -139,7 +149,7 @@ Time bounds are enforced server-side — `get_tasks()` only returns tasks curren
 
 Tokens should be rotated regularly. Add a separate cron entry outside the ophix-managed block:
 
-```
+```text
 # Weekly token rotation — not managed by ophix-task-crontab
 0 3 * * 0 root /path/to/venv/bin/task-client rotate-token
 ```

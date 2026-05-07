@@ -229,6 +229,24 @@ def cmd_info(args):
     print("  {}: {}".format(TASKSERVER_CA_CERT, values.get(TASKSERVER_CA_CERT, "(not set)")))
 
 
+def cmd_report(args):
+    server_url, api_token, ca_cert, _ = _resolve_server_config(
+        exit_on_error=True,
+        return_env_path=True,
+    )
+    output = sys.stdin.read()
+    try:
+        resp = _post_json(
+            "{}/api/tasks/{}/report/".format(server_url.rstrip("/"), args.task_id),
+            {"output": output},
+            api_token=api_token,
+            ca_cert=ca_cert,
+        )
+        resp.raise_for_status()
+    except Exception:
+        pass  # Silent failure — task ran; reporting is best-effort
+
+
 def cmd_doctor(args):
     print("task-client doctor\n")
 
@@ -361,6 +379,10 @@ def build_parser():
     # doctor
     sub.add_parser("doctor", help="Check configuration and server connectivity.")
 
+    # report
+    p = sub.add_parser("report", help="Read stdin and post execution output to the server.")
+    p.add_argument("task_id", type=int, help="Task ID to report output for")
+
     return parser
 
 
@@ -373,6 +395,7 @@ COMMANDS = {
     "rotate-token": cmd_rotate_token,
     "info": cmd_info,
     "doctor": cmd_doctor,
+    "report": cmd_report,
 }
 
 
