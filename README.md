@@ -1,8 +1,8 @@
 # ophix-task-client
 
-Tier 1 client for [Ophix](https://ophixproject.com) task scheduling servers.
+Tier 1 task scheduling client for [Ophix Project](https://ophixproject.com) servers.
 
-Handles authentication, registration, and task fetching. Exposes `get_tasks()` as an importable library for Tier 2 clients (e.g. `ophix-task-crontab`).
+Handles authentication, provides an importable library for Tier 2 clients (`get_tasks()`, `create_task()`), and exposes the `task-client` CLI for bootstrapping and diagnostics.
 
 ---
 
@@ -12,146 +12,125 @@ Handles authentication, registration, and task fetching. Exposes `get_tasks()` a
 pip install ophix-task-client
 ```
 
-Requires Python 3.7+.
-
 ---
 
-## Quick start
+## Quickstart
 
 ```bash
-task-client quickstart https://tasks.internal myhost-tasks
+task-client quickstart https://tasks.example.com myhost-tasks
 ```
 
-This sets the server URL, downloads the CA certificate, and registers the client in one step. The API token is saved automatically.
+This single command sets the server URL, downloads the CA certificate, and registers the client. The token is saved to `.task.env` automatically.
 
 ---
 
-## Configuration
-
-Configuration is stored in `.task.env` in the project root (or venv parent directory).
+## Configuration file: `.task.env`
 
 | Variable | Description |
 | --- | --- |
-| `TASKSERVER_URL` | Task server base URL (e.g. `https://tasks.internal`) |
-| `TASKSERVER_API_TOKEN` | 64-character hex token issued on registration |
-| `TASKSERVER_CA_CERT` | Path to the server's CA certificate PEM file |
+| `TASKSERVER_URL` | Task server base URL |
+| `TASKSERVER_API_TOKEN` | 64-character hex client token |
+| `TASKSERVER_CA_CERT` | Path to CA certificate PEM (optional) |
 
 ---
 
-## CLI reference
+## CLI Reference
 
-### `task-client quickstart <server_url> <client_name>`
+### `quickstart <server_url> <client_name>`
 
-Set server URL, download CA certificate, and register this client in one step.
+Bootstrap in one step: set server URL, download CA cert, register.
 
-```bash
-task-client quickstart https://tasks.internal myhost-tasks
-```
+### `register <name>`
 
-### `task-client set server <url>`
+Register this client with the task server. Use after `set server` and `download ca-cert` if bootstrapping step by step.
 
-Set the task server URL.
+### `set server <value>`
 
-```bash
-task-client set server https://tasks.internal
-```
+Write the server URL to `.task.env`.
 
-### `task-client download ca-cert`
+### `download ca-cert`
 
-Download and save the server's CA certificate. Required for TLS verification.
+Download and save the server CA certificate.
 
-```bash
-task-client download ca-cert
-```
+### `rotate-token`
 
-### `task-client register <name>`
+Generate a new token, send it to the server, update `.task.env` on success.
 
-Register this client with the task server. Generates a token and saves it to `.task.env`.
+### `fetch`
 
-```bash
-task-client register myhost-tasks
-```
+Fetch and print the active task list as JSON. Useful for debugging.
 
-### `task-client fetch`
+### `create-task`
 
-Fetch the active task list and print it as JSON. Useful for inspection and debugging.
+Create a task on the server.
 
 ```bash
-task-client fetch
+task-client create-task \
+  --schedule server-maintenance \
+  --name nightly-backup \
+  --command "/opt/backup.sh" \
+  --description "Nightly backup" \
+  --interval "0 2 * * *" \
+  --stdout-handling report \
+  --stderr-handling merge
 ```
 
-### `task-client rotate-token`
+| Argument | Required | Description |
+| --- | --- | --- |
+| `--schedule` | Yes | Schedule name |
+| `--name` | Yes | Task name |
+| `--command` | Yes | Command to execute |
+| `--description` | No | Comment written above the cron entry |
+| `--interval` | No | Cron expression for recurring tasks |
+| `--run-at` | No | ISO datetime for a one-off task |
+| `--stdout-handling` | No | `inherit` (default), `report`, `null`, `file` |
+| `--stderr-handling` | No | `inherit` (default), `report`, `null`, `merge`, `file` |
+| `--log-file` | No | Append path (used with `file` handling) |
 
-Generate a new token, send it to the server, and update `.task.env`. Run regularly via a separate cron job to limit token exposure.
+### `report <task_id>`
 
-```bash
-task-client rotate-token
-```
+Read stdin and post it to the server as execution output. Normally invoked via a pipe in the generated cron line — not called directly.
 
-### `task-client report <task_id>`
+### `info`
 
-Read stdin and post the content to the server as an execution log entry for the given task. Used as part of a cron pipe expression — not normally run directly.
+Show current configuration summary.
 
-```bash
-task-client report 42
-```
+### `doctor`
 
-Fails silently — the task already ran; reporting is best-effort and should not cause the cron job to show a failure.
-
-### `task-client info`
-
-Show the current configuration (server URL, token prefix, CA cert path).
-
-```bash
-task-client info
-```
-
-### `task-client doctor`
-
-Check local configuration and server connectivity. Reports on the ENV file, permissions, token validity, CA cert path, and makes a live authenticated request to confirm the server accepts the token.
-
-```bash
-task-client doctor
-```
+Diagnose local configuration and server connectivity.
 
 ---
 
-## Library usage
-
-Tier 2 clients import directly from `task_client.core`:
+## Library API
 
 ```python
-from task_client.core import get_tasks
-
-tasks = get_tasks()
-for task in tasks:
-    print(task["name"], task["interval"] or task["run_at"])
+from task_client.core import get_tasks, create_task
 ```
 
-`get_tasks()` reads `.task.env` automatically and returns the active task list as a list of dicts. Each dict contains:
+### `get_tasks(schedule=None, server_url=None, api_token=None, ca_cert=None)`
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `id` | int | Task ID on the server |
-| `schedule` | str | Schedule name |
-| `name` | str | Task name |
-| `command` | str | Command to execute |
-| `run_at` | str or null | ISO datetime for one-off tasks |
-| `interval` | str | Cron expression for recurring tasks |
-| `starts_at` | str or null | Active from this datetime |
-| `ends_at` | str or null | Active until this datetime |
+Fetch the task list. Returns a list of dicts.
 
-Time bounds are enforced server-side — `get_tasks()` only returns tasks currently within their active window.
-
----
-
-## Token rotation
-
-Tokens should be rotated regularly. Add a separate cron entry outside the ophix-managed block:
-
-```text
-# Weekly token rotation — not managed by ophix-task-crontab
-0 3 * * 0 root /path/to/venv/bin/task-client rotate-token
+```python
+tasks = get_tasks()                                # all linked schedules
+tasks = get_tasks(schedule="server-maintenance")   # one schedule only
 ```
 
-Keep this entry separate from the ophix-managed block so it is not overwritten on sync.
+Each dict includes: `id`, `schedule`, `name`, `command`, `description`, `run_at`, `interval`, `starts_at`, `ends_at`, `enabled`, `stdout_handling`, `stderr_handling`, `log_file`.
+
+Disabled tasks (`enabled=False`) are included — Tier 2 clients write them as commented-out entries.
+
+### `create_task(schedule, name, command, ...)`
+
+Create a task on the server. Returns `{"status": "created"|"skipped", "id": <int>}`.
+
+```python
+result = create_task(
+    schedule="server-maintenance",
+    name="nightly-backup",
+    command="/opt/backup.sh",
+    interval="0 2 * * *",
+    stdout_handling="report",
+    stderr_handling="merge",
+)
+```
