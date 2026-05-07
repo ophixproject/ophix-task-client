@@ -138,8 +138,8 @@ for task in tasks:
 | `command` | str | Command to execute |
 | `run_at` | str or null | ISO datetime for one-off tasks |
 | `interval` | str | Cron expression for recurring tasks |
-| `starts_at` | str or null | Active from this UTC datetime |
-| `ends_at` | str or null | Active until this UTC datetime |
+| `starts_at` | str or null | Active from this datetime |
+| `ends_at` | str or null | Active until this datetime |
 
 Time bounds are enforced server-side — `get_tasks()` only returns tasks currently within their active window.
 
