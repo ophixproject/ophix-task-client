@@ -151,7 +151,7 @@ def cmd_download(args):
 
         urllib3.disable_warnings()
         try:
-            resp = requests.get("{}/ca-cert/".format(server_url.rstrip("/")), verify=False)
+            resp = requests.get("{}api/server/ca-cert/".format(server_url.rstrip("/")), verify=False)
             resp.raise_for_status()
             ca_path.write_text(resp.text)
             set_key(str(env_path), TASKSERVER_CA_CERT, str(ca_path))
