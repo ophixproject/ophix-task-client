@@ -130,6 +130,7 @@ def _resolve_server_config(
 
 def get_tasks(
     schedule=None,    # type: Optional[str]
+    scheduler=None,   # type: Optional[str]
     server_url=None,  # type: Optional[str]
     api_token=None,   # type: Optional[str]
     ca_cert=None,     # type: Optional[str]
@@ -138,8 +139,9 @@ def get_tasks(
     """
     Fetch the task list from the task server.
 
-    If schedule is given, only tasks from that named schedule are returned.
-    Without it, tasks from all enabled schedules for the client are returned.
+    schedule  — if given, only tasks from that named schedule are returned.
+    scheduler — if given, only tasks assigned to that scheduler type are
+                returned (e.g. 'cron', 'systemd', 'wts').
 
     Includes disabled tasks (enabled=False) so Tier 2 clients can comment
     them out rather than silently removing them. Time bounds are enforced
@@ -148,7 +150,11 @@ def get_tasks(
     server_url, api_token, ca_cert = _resolve_server_config(server_url, api_token, ca_cert)
     url = "{}/api/tasks/".format(server_url.rstrip("/"))
     headers = build_client_headers(api_token=api_token)
-    params = {"schedule": schedule} if schedule else {}
+    params = {}
+    if schedule:
+        params["schedule"] = schedule
+    if scheduler:
+        params["scheduler"] = scheduler
     response = requests.get(url, headers=headers, params=params, verify=ca_cert or True)
     response.raise_for_status()
     return response.json()
@@ -159,6 +165,7 @@ def create_task(
     name,               # type: str
     command,            # type: str
     description="",     # type: str
+    scheduler="",       # type: str
     interval="",        # type: str
     run_at=None,        # type: Optional[str]
     starts_at=None,     # type: Optional[str]
@@ -186,6 +193,7 @@ def create_task(
     headers["Content-Type"] = "application/json"
     payload = {
         "schedule": schedule,
+        "scheduler": scheduler,
         "name": name,
         "command": command,
         "description": description,

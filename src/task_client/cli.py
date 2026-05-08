@@ -234,6 +234,7 @@ def cmd_create_task(args):
     try:
         result = create_task(
             schedule=args.schedule,
+            scheduler=args.scheduler or "",
             name=args.name,
             command=args.command,
             description=args.description or "",
@@ -409,6 +410,7 @@ def build_parser():
     # create-task
     p = sub.add_parser("create-task", help="Create a task on the server.")
     p.add_argument("--schedule", required=True, help="Schedule name to add the task to")
+    p.add_argument("--scheduler", default="", help="Scheduler type (e.g. cron, systemd, wts)")
     p.add_argument("--name", required=True, help="Task name")
     p.add_argument("--command", required=True, help="Command to execute")
     p.add_argument("--description", default="", help="Optional description (written as a comment in the crontab)")
