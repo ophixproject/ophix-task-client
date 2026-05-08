@@ -48,6 +48,8 @@ def cmd_create_task(args):
         status = result.get("status")
         task_id = result.get("id")
         if status == "created":
+            if result.get("schedule_created"):
+                print("Created schedule '{}'.".format(args.schedule))
             print("Created task #{}: {}".format(task_id, args.name))
         elif status == "skipped":
             print("Skipped (command already exists as task #{}): {}".format(task_id, args.command[:80]))
