@@ -69,7 +69,7 @@ def cmd_report(args):
         resp = requests.post(
             "{}/api/tasks/{}/report/".format(server_url.rstrip("/"), args.task_id),
             headers=headers,
-            json={"output": output},
+            json={"output": output, "stream": args.stream},
             verify=ca_cert or True,
         )
         resp.raise_for_status()
@@ -122,6 +122,9 @@ COMMANDS["report"] = {
     "help": "Read stdin and post execution output to the server.",
     "arguments": [
         {"name": "task_id", "type": int, "help": "Task ID to report output for"},
+        {"name": "--stream", "default": "both",
+         "choices": ["stdout", "stderr", "both"],
+         "help": "Which stream was captured (default: both)"},
     ],
     "handler": cmd_report,
 }
