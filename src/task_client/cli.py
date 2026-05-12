@@ -63,6 +63,8 @@ def cmd_create_task(args):
 def cmd_report(args):
     server_url, api_token, ca_cert = resolve_server_config(CLIENT_CONFIG)
     output = sys.stdin.read()
+    if not output and not args.force:
+        return
     try:
         headers = build_client_headers(CLIENT_CONFIG, api_token=api_token)
         headers["Content-Type"] = "application/json"
@@ -125,6 +127,8 @@ COMMANDS["report"] = {
         {"name": "--stream", "default": "both",
          "choices": ["stdout", "stderr", "both"],
          "help": "Which stream was captured (default: both)"},
+        {"name": "--force", "action": "store_true",
+         "help": "Report even if output is empty (default: skip empty reports)"},
     ],
     "handler": cmd_report,
 }
