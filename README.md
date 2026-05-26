@@ -1,6 +1,6 @@
 # ophix-task-client
 
-Tier 1 task scheduling client for [Ophix Project](https://ophixproject.com) servers.
+Tier 1 task scheduling client for [Ophix Project](https://ophix.io) servers.
 
 Handles authentication, provides an importable library for Tier 2 clients (`get_tasks()`, `create_task()`), and exposes the `task-client` CLI for bootstrapping and diagnostics.
 
