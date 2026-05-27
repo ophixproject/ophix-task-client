@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 import requests
 
-from client_core.core import build_client_headers, resolve_server_config
+from client_core.core import api_get, api_post, build_client_headers, resolve_server_config
 from task_client._config import CLIENT_CONFIG
 
 
@@ -41,7 +41,7 @@ def get_tasks(
         params["schedule"] = schedule
     if scheduler:
         params["scheduler"] = scheduler
-    response = requests.get(url, headers=headers, params=params, verify=ca_cert or True)
+    response = api_get(url, headers=headers, params=params, verify=ca_cert or True)
     response.raise_for_status()
     return response.json()
 
@@ -89,6 +89,6 @@ def create_task(
         "stderr_handling": stderr_handling,
         "log_file": log_file,
     }
-    response = requests.post(url, headers=headers, json=payload, verify=ca_cert or True)
+    response = api_post(url, headers=headers, json=payload, verify=ca_cert or True)
     response.raise_for_status()
     return response.json()

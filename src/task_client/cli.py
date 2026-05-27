@@ -12,7 +12,7 @@ import sys
 import requests
 
 from client_core.commands import build_commands
-from client_core.core import build_client_headers, resolve_server_config
+from client_core.core import api_post, build_client_headers, resolve_server_config
 from client_core.parser import make_main
 from task_client._config import CLIENT_CONFIG
 from task_client.core import create_task, get_tasks
@@ -68,7 +68,7 @@ def cmd_report(args):
     try:
         headers = build_client_headers(CLIENT_CONFIG, api_token=api_token)
         headers["Content-Type"] = "application/json"
-        resp = requests.post(
+        resp = api_post(
             "{}/api/tasks/{}/report/".format(server_url.rstrip("/"), args.task_id),
             headers=headers,
             json={"output": output, "stream": args.stream},
