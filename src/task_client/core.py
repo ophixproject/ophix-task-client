@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 import requests
 
-from client_core.core import api_get, api_post, build_client_headers, resolve_server_config
+from client_core.core import api_get, api_post, build_client_headers, resolve_server_config, set_active_config
 from task_client._config import CLIENT_CONFIG
 
 
@@ -31,6 +31,7 @@ def get_tasks(
     scheduler — if given, only tasks assigned to that scheduler type are
                 returned (e.g. 'cron', 'systemd', 'wts').
     """
+    set_active_config(CLIENT_CONFIG)
     server_url, api_token, ca_cert = resolve_server_config(
         CLIENT_CONFIG, server_url, api_token, ca_cert,
     )
@@ -69,6 +70,7 @@ def create_task(
 
     Returns {"status": "created"|"skipped", "id": <int>}.
     """
+    set_active_config(CLIENT_CONFIG)
     server_url, api_token, ca_cert = resolve_server_config(
         CLIENT_CONFIG, server_url, api_token, ca_cert,
     )
