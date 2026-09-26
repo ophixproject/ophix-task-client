@@ -70,6 +70,7 @@ Create a task on the server.
 ```bash
 task-client create-task \
   --schedule server-maintenance \
+  --scheduler cron \
   --name nightly-backup \
   --command "/opt/backup.sh" \
   --description "Nightly backup" \
@@ -81,10 +82,11 @@ task-client create-task \
 | Argument | Required | Description |
 | --- | --- | --- |
 | `--schedule` | Yes | Schedule name |
+| `--scheduler` | No | Scheduler type (e.g. `cron`, `systemd`, `wts`) — must match an existing, enabled Scheduler on the server. Determines the expected `--interval` format. |
 | `--name` | Yes | Task name |
 | `--command` | Yes | Command to execute |
 | `--description` | No | Comment written above the cron entry |
-| `--interval` | No | Cron expression for recurring tasks |
+| `--interval` | No | An expression in the format the assigned `--scheduler` expects (e.g. a cron expression for `cron`) |
 | `--run-at` | No | ISO datetime for a one-off task |
 | `--stdout-handling` | No | `inherit` (default), `report`, `null`, `file` |
 | `--stderr-handling` | No | `inherit` (default), `report`, `null`, `merge`, `file` |
@@ -110,18 +112,19 @@ Diagnose local configuration and server connectivity.
 from task_client.core import get_tasks, create_task
 ```
 
-### `get_tasks(schedule=None, server_url=None, api_token=None, ca_cert=None)`
+### `get_tasks(schedule=None, scheduler=None, server_url=None, api_token=None, ca_cert=None)`
 
 Fetch the task list. Returns a list of dicts.
 
 ```python
 tasks = get_tasks()                                # all linked schedules
 tasks = get_tasks(schedule="server-maintenance")   # one schedule only
+tasks = get_tasks(scheduler="cron")                # only tasks assigned to a given scheduler type
 ```
 
-Each dict includes: `id`, `schedule`, `name`, `command`, `description`, `run_at`, `interval`, `starts_at`, `ends_at`, `enabled`, `stdout_handling`, `stderr_handling`, `log_file`.
+Each dict includes: `id`, `schedule`, `scheduler`, `name`, `command`, `description`, `run_at`, `interval`, `starts_at`, `ends_at`, `enabled`, `paused`, `stdout_handling`, `stderr_handling`, `log_file`.
 
-Disabled tasks (`enabled=False`) are included — Tier 2 clients write them as commented-out entries.
+Disabled tasks (`enabled=False`) are excluded entirely; paused tasks (`paused=True`) are included so Tier 2 clients can write them as commented-out/disabled entries. `paused` is an effective value — true if the task, its Schedule, or this client's access to that Schedule is paused.
 
 ### `create_task(schedule, name, command, ...)`
 
@@ -130,10 +133,33 @@ Create a task on the server. Returns `{"status": "created"|"skipped", "id": <int
 ```python
 result = create_task(
     schedule="server-maintenance",
+    scheduler="cron",
     name="nightly-backup",
     command="/opt/backup.sh",
     interval="0 2 * * *",
     stdout_handling="report",
     stderr_handling="merge",
+)
+```
+
+Full signature:
+
+```python
+create_task(
+    schedule,                   # Schedule name (required)
+    name,                       # Task name (required)
+    command,                    # Command to execute (required)
+    description="",             # Comment text
+    scheduler="",               # Scheduler name (e.g. "cron", "systemd") - determines expected interval format
+    interval="",                # Interval expression matching the scheduler's format
+    run_at=None,                # ISO datetime string for one-off tasks
+    starts_at=None,             # ISO datetime string
+    ends_at=None,                # ISO datetime string
+    stdout_handling="inherit",  # inherit | report | null | file
+    stderr_handling="inherit",  # inherit | report | null | merge | file
+    log_file="",                # Log file path
+    server_url=None,            # Override .task.env
+    api_token=None,             # Override .task.env
+    ca_cert=None,                # Override .task.env
 )
 ```
