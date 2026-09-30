@@ -1,8 +1,8 @@
 # ophix-task-client
 
-Tier 1 task scheduling client for [Ophix Project](https://ophix.io) servers.
+**The piece that turns "what should run where" into a task your host can actually see.**
 
-Handles authentication, provides an importable library for Tier 2 clients (`get_tasks()`, `create_task()`), and exposes the `task-client` CLI for bootstrapping and diagnostics.
+A central schedule is only useful if every host can reliably pull its own slice of it — authenticate, fetch, and know what changed. `ophix-task-client` is that connection: it registers the host with your [Ophix](https://ophix.io) task server, exposes a `task-client` CLI for bootstrapping and debugging, and an importable library (`get_tasks()`, `create_task()`) that [ophix-task-crontab](https://github.com/ophixproject/ophix-task-crontab) and [ophix-task-systemd](https://github.com/ophixproject/ophix-task-systemd) build on to actually apply tasks to the host's native scheduler.
 
 ---
 
